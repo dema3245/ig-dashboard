@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow"><title>Collega TikTok</title>
+<style>
+:root{--bg:#fff;--card:#f5f6f8;--text:#161a1f;--muted:#5d6672;--line:#dfe3e8;--accent:#2a6fdb;--down:#c0392b;--up:#1a8a4f;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1d2127;--text:#eceff3;--muted:#98a2ae;--line:#2d333b;--accent:#5b9bff;--down:#ff7a6b;--up:#4cc38a}}
+*{box-sizing:border-box}html,body{background:var(--bg)}body{margin:0 auto;max-width:620px;padding:24px 16px;color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:22px;margin:0 0 4px}.muted{color:var(--muted);font-size:14px}.card{background:var(--card);border-radius:12px;padding:16px;margin:16px 0}
+button,.btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.sec{background:var(--card);color:var(--text);border:1px solid var(--line)}
+code{display:block;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:15px;margin:10px 0;user-select:all}
+ol{padding-left:20px}li{margin:6px 0}.err{color:var(--down)}.ok{color:var(--up)}a{color:var(--accent)}
+</style></head><body>
+<h1>Collega un profilo TikTok</h1>
+<div class="muted">Il tracker leggerà follower e statistiche dei video del profilo, solo in lettura.</div>
+<div id="box"></div>
+<p class="muted"><a href="./">← Torna alla dashboard</a></p>
+<script>
+const CFG = {"key": "sbawnm94inchu0qj8g", "scope": "user.info.basic,user.info.profile,user.info.stats,video.list", "auth": "https://www.tiktok.com/v2/auth/authorize/", "actions": "https://github.com/dema3245/ig-tracker/actions/workflows/tracker.yml", "redirect": null}, $ = id => document.getElementById(id), box = $("box");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const redirect = CFG.redirect || (location.origin + location.pathname);
+const q = new URLSearchParams(location.search);
+let saved = null; try { saved = sessionStorage.getItem("tt_state"); } catch (e) {}
+function login() {
+  const state = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join("");
+  try { sessionStorage.setItem("tt_state", state); } catch (e) {}
+  const u = new URL(CFG.auth);
+  u.search = new URLSearchParams({client_key: CFG.key, scope: CFG.scope, response_type: "code", redirect_uri: redirect, state}).toString();
+  location.href = u.toString();
+}
+if (!CFG.key) {
+  box.innerHTML = `<div class="card"><b class="err">Manca la chiave dell'app TikTok.</b><p>Aggiungi nei secrets del repository del tracker <b>TIKTOK_CLIENT_KEY</b> e <b>TIKTOK_CLIENT_SECRET</b> (li trovi nella tua app su developers.tiktok.com), poi rilancia il workflow.</p></div>`;
+} else if (q.get("error")) {
+  box.innerHTML = `<div class="card"><b class="err">TikTok ha rifiutato il collegamento.</b><p>${esc(q.get("error_description") || q.get("error"))}</p><button onclick="login()">Riprova</button></div>`;
+} else if (q.get("code")) {
+  const code = q.get("code"), bad = saved && q.get("state") !== saved;
+  box.innerHTML = bad ? `<div class="card"><b class="err">Il collegamento non è partito da questa pagina.</b><p>Per sicurezza ricomincia da qui.</p><button onclick="login()">Accedi con TikTok</button></div>` :
+  `<div class="card"><b class="ok">Accesso riuscito.</b> Ora usa subito questo codice: scade dopo pochi minuti e vale una volta sola.
+   <code id="code">${esc(code)}</code><button id="copy" class="sec">Copia il codice</button></div>
+   <div class="card"><b>Ultimo passaggio, su GitHub</b><ol>
+   <li>Apri ${CFG.actions ? `<a href="${esc(CFG.actions)}" target="_blank" rel="noopener">Actions → Instagram tracker</a>` : "Actions → Instagram tracker nel repository del tracker"}.</li>
+   <li>Clicca <b>Run workflow</b>.</li>
+   <li>In <b>tiktok_account</b> scrivi il nome del profilo, ad esempio <b>saint.lyoo</b> (usa lo stesso nome del profilo Instagram, così restano collegati).</li>
+   <li>In <b>tiktok_code</b> incolla il codice e clicca <b>Run workflow</b>.</li></ol>
+   <p class="muted">Dopo 1-2 minuti il profilo compare nella scheda TikTok della dashboard. Se il codice è scaduto, ripeti l'accesso da questa pagina.</p></div>`;
+  const b = $("copy"); if (b) b.onclick = async () => { try { await navigator.clipboard.writeText(code); b.textContent = "Copiato ✓"; } catch (e) { b.textContent = "Selezionalo e copialo a mano"; } };
+  try { sessionStorage.removeItem("tt_state"); history.replaceState(null, "", location.pathname); } catch (e) {}
+} else {
+  box.innerHTML = `<div class="card"><ol><li>Sul telefono o sul computer, esci da TikTok se sei dentro un altro profilo.</li><li>Clicca il pulsante qui sotto e accedi con il profilo da collegare.</li><li>Autorizza l'accesso: torni qui con un codice da incollare su GitHub.</li></ol>
+  <button onclick="login()">Accedi con TikTok</button></div><p class="muted">Indirizzo di ritorno da registrare nell'app TikTok (Login Kit → Redirect URI):<code>${esc(redirect)}</code></p>`;
+}
+</script></body></html>
